@@ -1,0 +1,23 @@
+{
+  "constraints": {
+    "work_order.order_item": [
+      {
+        "referred_schema": "artik",
+        "referred_table": "order",
+        "referred_columns": [
+          "id"
+        ],
+        "constrained_columns": [
+          "order_id"
+        ]
+      }
+    ]
+  },
+  "schemas": [
+    "artik",
+    "backend",
+    "sampletrack",
+    "synthesis",
+    "work_order"
+  ]
+}

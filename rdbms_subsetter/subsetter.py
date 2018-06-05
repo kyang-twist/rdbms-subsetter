@@ -398,8 +398,8 @@ class Db(object):
             for (child_col, this_col) in zip(child_fk['constrained_columns'],
                                              child_fk['referred_columns']):
                 slct = slct.where(child.c[child_col] == source_row[this_col])
-            if not prioritized:
-                slct = slct.limit(self.args.children)
+            # if not prioritized:
+            #     slct = slct.limit(self.args.children) # TODO ky children limit not needed
             for (n, desired_row) in enumerate(self.conn.execute(slct)):
                 if prioritized:
                     child.target.required.append((desired_row, prioritized))
@@ -434,7 +434,7 @@ class Db(object):
                 (tbl_schema, tbl_name) = tbl_name.split('.', 1)
             else:
                 tbl_schema = None
-            source = self.tables[(tbl_schema, tbl_name)]
+            source = self.tables[(tbl_schema, tbl_name)]  # TODO ky add all schemas and tables here
             for pk in pks:
                 source_row = source.by_pk(pk)
                 if source_row:
@@ -446,31 +446,31 @@ class Db(object):
                     logging.warn("requested %s:%s not found in source db,"
                                  "could not create" % (source.name, pk))
 
-        while True:
-            targets = sorted(target_db.tables.values(),
-                             key=lambda t: t.completeness_score())
-            try:
-                target = targets.pop(0)
-                while not target.source.n_rows:
-                    target = targets.pop(0)
-            except IndexError:  # pop failure, no more tables
-                break
-            logging.debug("total n_rows in target: %d" %
-                          sum((t.n_rows for t in target_db.tables.values())))
-            logging.debug("target tables with 0 n_rows: %s" % ", ".join(
-                t.name for t in target_db.tables.values() if not t.n_rows))
-            logging.info("lowest completeness score (in %s) at %f" %
-                         (target.name, target.completeness_score()))
-            if target.completeness_score() > 0.97:
-                break
-            (source_row, prioritized) = target.source.next_row()
-            self.create_row_in(source_row,
-                               target_db,
-                               target,
-                               prioritized=prioritized)
-
-            if target_db.pending > self.args.buffer > 0:
-                target_db.flush()
+        # while True:
+        #     targets = sorted(target_db.tables.values(),
+        #                      key=lambda t: t.completeness_score())
+        #     try:
+        #         target = targets.pop(0)
+        #         while not target.source.n_rows:
+        #             target = targets.pop(0)
+        #     except IndexError:  # pop failure, no more tables
+        #         break
+        #     logging.debug("total n_rows in target: %d" %
+        #                   sum((t.n_rows for t in target_db.tables.values())))
+        #     logging.debug("target tables with 0 n_rows: %s" % ", ".join(
+        #         t.name for t in target_db.tables.values() if not t.n_rows))
+        #     logging.info("lowest completeness score (in %s) at %f" %
+        #                  (target.name, target.completeness_score()))
+        #     if target.completeness_score() > 0.97:
+        #         break
+        #     (source_row, prioritized) = target.source.next_row()
+        #     self.create_row_in(source_row,
+        #                        target_db,
+        #                        target,
+        #                        prioritized=prioritized)
+        #
+        #     if target_db.pending > self.args.buffer > 0:
+        #         target_db.flush()
 
         if self.args.buffer > 0:
             target_db.flush()
@@ -563,7 +563,7 @@ argparser.add_argument(
     '-f',
     '--force',
     help='<table name>:<primary_key_val> to force into dest',
-    type=str.lower,
+    type=str,
     action='append')
 argparser.add_argument(
     '-c',
@@ -640,8 +640,8 @@ def generate():
     schemas = args.schema + [None, ]
     source = Db(args.source, args, schemas)
     target = Db(args.dest, args, schemas)
-    if set(source.tables.keys()) != set(target.tables.keys()):
-        raise Exception('Source and target databases have different tables')
+    # if set(source.tables.keys()) != set(target.tables.keys()):  # TODO ky this is probably not needed if you can reasonably assume they exist
+    #     raise Exception('Source and target databases have different tables')
     source.assign_target(target)
     if source.confirm():
         source.create_subset_in(target)
